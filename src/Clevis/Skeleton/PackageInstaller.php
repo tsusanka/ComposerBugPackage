@@ -85,9 +85,9 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function installTemplates()
 	{
-		if (is_readable($this->baseDir . '/templates'))
+		if (is_readable($this->baseDir . '/app'))
 		{
-			$this->copyFiles($this->baseDir . '/templates', array($this, 'mapTemplatePath'));
+			$this->copyFiles($this->baseDir . '/app', array($this, 'mapTemplatePath'));
 		}
 	}
 
@@ -96,9 +96,9 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function uninstallTemplates()
 	{
-		if (is_readable($this->baseDir . '/templates'))
+		if (is_readable($this->baseDir . '/app'))
 		{
-			$this->deleteFiles($this->baseDir . '/templates', array($this, 'mapTemplatePath'));
+			$this->deleteFiles($this->baseDir . '/app', array($this, 'mapTemplatePath'));
 		}
 	}
 
@@ -133,13 +133,9 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function installMigrations()
 	{
-		if (is_readable($this->baseDir . '/migrations/struct'))
+		if (is_readable($this->baseDir . '/migrations'))
 		{
-			$this->copyFiles($this->baseDir . '/migrations/struct', $this->rootDir . '/migrations/struct', TRUE);
-		}
-		if (is_readable($this->baseDir . '/migrations/data'))
-		{
-			$this->copyFiles($this->baseDir . '/migrations/data', $this->rootDir . '/migrations/struct', TRUE);
+			$this->copyFiles($this->baseDir . '/migrations', $this->rootDir . '/migrations/', TRUE);
 		}
 	}
 
@@ -148,9 +144,9 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function installTests()
 	{
-		if (is_readable($this->baseDir . '/tests'))
+		if (is_readable($this->baseDir . '/tests/cases'))
 		{
-			$this->copyFiles($this->baseDir . '/tests', array($this, 'mapTemplatePath'));
+			$this->copyFiles($this->baseDir . '/tests/cases', array($this, 'mapTestsPath'));
 		}
 	}
 
@@ -159,9 +155,9 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private	function uninstallTests()
 	{
-		if (is_readable($this->baseDir . '/templates'))
+		if (is_readable($this->baseDir . '/tests/cases'))
 		{
-			$this->deleteFiles($this->baseDir . '/templates', array($this, 'mapTemplatePath'));
+			$this->deleteFiles($this->baseDir . '/tests/cases', array($this, 'mapTestsPath'));
 		}
 	}
 
@@ -172,7 +168,7 @@ class PackageInstaller extends LibraryInstaller
 	{
 		$this->baseDir = $this->getPackageBasePath($package);
 		// todo: may be a problem if vendor dir is configured to be a subdirectory (eg. `libs/composer`)
-		$this->rootDir = substr($this->vendorDir, strpos($this->vendorDir, '/') + 1);
+		$this->rootDir = substr($this->vendorDir, 0, -6);
 	}
 
 	/**
@@ -184,26 +180,30 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function copyFiles($sourceDir, $mapping, $onceOnly = FALSE)
 	{
+		echo "\nCOPY: " . substr($sourceDir, 40) . ":\n";
 		$files = new DirectoryIterator($sourceDir);
 		/** @var DirectoryIterator $file */
 		foreach ($files as $file)
 		{
-			if ($file->isDot())
+			$name = $file->getFilename();
+			if ($name[0] === '.')
 			{
 				continue;
 			}
 			elseif ($file->isDir())
 			{
-				$this->copyFiles($sourceDir . '/' . $file->getFilename(), $mapping, $onceOnly);
+				$this->copyFiles($sourceDir . '/' . $name, $mapping, $onceOnly);
 			}
 			else
 			{
 				$targetPath = $this->getMappedPath($file->getPathname(), $mapping);
-				if ($onceOnly && file_exists($targetPath))
+				if (!$targetPath || $onceOnly && file_exists($targetPath))
 				{
+					echo "- skip: " . substr($file->getPathname(), 40) . "\n";
 					continue;
 				}
 				$this->filesystem->ensureDirectoryExists(dirname($targetPath));
+				echo "- copy: " . substr($file->getPathname(), 40) . ' --> ' . substr($targetPath, 40) . "\n";
 				copy($file->getPathname(), $targetPath);
 			}
 		}
@@ -218,17 +218,19 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function deleteFiles($sourceDir, $mapping)
 	{
+		echo "\nDELETE: " . substr($sourceDir, 40) . ":\n";
 		$files = new DirectoryIterator($sourceDir);
 		/** @var DirectoryIterator $file */
 		foreach ($files as $file)
 		{
-			if ($file->isDot())
+			$name = $file->getFilename();
+			if ($name[0] === '.')
 			{
 				continue;
 			}
 			elseif ($file->isDir())
 			{
-				$path = $this->deleteFiles($sourceDir . '/' . $file->getFilename(), $mapping);
+				$path = $this->deleteFiles($sourceDir . '/' . $name, $mapping);
 				if ($path)
 				{
 					// odebírá adresář, pokud je prázdný
@@ -238,6 +240,12 @@ class PackageInstaller extends LibraryInstaller
 			else
 			{
 				$targetPath = $this->getMappedPath($file->getPathname(), $mapping);
+				if (!$targetPath)
+				{
+					echo "- skip: " . substr($file->getPathname(), 40) . "\n";
+					continue;
+				}
+				echo "- delete: " . substr($targetPath, 40) . "\n";
 				unlink($targetPath);
 			}
 		}
@@ -259,7 +267,7 @@ class PackageInstaller extends LibraryInstaller
 			$parts = explode('/', $path);
 			return $mapping . end($parts);
 		}
-		elseif (is_array($mapping))
+		elseif (is_array($mapping) && !is_object($mapping[0]))
 		{
 			return preg_replace($mapping[0], $mapping[0], $path);
 		}
@@ -280,6 +288,8 @@ class PackageInstaller extends LibraryInstaller
 	 * @return string
 	 */
 	public function mapTemplatePath($path) {
+		$path = str_replace('\\', '/', $path);
+
 		// vendor/{Vendor}/{Package}/src/{XyzModule}/templates/{Presenter}/default.latte
 		if (preg_match('#((?:/[^/]+Module)*)/templates/([^/]+)/(.*)#', $path, $m))
 		{
@@ -290,7 +300,7 @@ class PackageInstaller extends LibraryInstaller
 		}
 		else
 		{
-			throw new InvalidArgumentException("Cannot map template file path '$path'.");
+			return FALSE;
 		}
 	}
 
@@ -301,17 +311,17 @@ class PackageInstaller extends LibraryInstaller
 	 * @return string
 	 */
 	public function mapTestsPath($path) {
+		$path = str_replace('\\', '/', $path);
+
 		// vendor/{Vendor}/{Package}/tests/cases/Unit/{Sub/Dir}/Test.php
-		if (preg_match('#tests/cases/([^/]+)((?:/[^/]+)*)/(.*)#', $path, $m))
+		if (preg_match('#tests/cases/(.*)#', $path, $m))
 		{
-			return empty($m[2])
-				? $this->rootDir . '/tests/cases/' . $m[1] . '/' . $m[3]
-				// tests/cases/Unit/{Package}/{Sub/Dir}/Test.php
-				: $this->rootDir . '/tests/cases/' . $m[1] . $m[2] . '/' . $m[3];
+			// tests/cases/Unit/{Sub/Dir}/Test.php
+			return $this->rootDir . '/tests/cases/' . $m[1];
 		}
 		else
 		{
-			throw new InvalidArgumentException("Cannot map template file path '$path'.");
+			return FALSE;
 		}
 	}
 
