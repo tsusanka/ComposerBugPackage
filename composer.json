@@ -20,7 +20,7 @@
 	},
 
 	"autoload": {
-		"classmap": ["src/"]
+		"psr-0": { "Clevis\\Skeleton\\": "src/" }
 	},
 	"extra": {
 		"class": "Clevis\\Skeleton\\PackageInstaller"
