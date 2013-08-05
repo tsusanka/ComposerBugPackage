@@ -256,7 +256,8 @@ class PackageInstaller extends LibraryInstaller
 	{
 		if (is_string($mapping))
 		{
-			return $mapping . end(explode('/', $path));
+			$parts = explode('/', $path);
+			return $mapping . end($parts);
 		}
 		elseif (is_array($mapping))
 		{
