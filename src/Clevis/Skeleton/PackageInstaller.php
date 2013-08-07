@@ -21,6 +21,9 @@ class PackageInstaller extends LibraryInstaller
 	/** @var string kořenový adresář aplikace */
 	public $rootDir;
 
+	/** @var string[] seznam nainstalovaných souborů */
+	private $files;
+
 
 	/**
 	 * Kontrola podpory
@@ -43,6 +46,8 @@ class PackageInstaller extends LibraryInstaller
 		$this->installAssets();
 		$this->installMigrations();
 		$this->installTests();
+
+		$this->logFiles($package);
 	}
 
 	/**
@@ -52,9 +57,10 @@ class PackageInstaller extends LibraryInstaller
 	{
 		$this->initDirs($initial);
 
-		$this->uninstallTemplates();
+		$this->removeFiles($initial);
+		/*$this->uninstallTemplates();
 		$this->uninstallAssets();
-		$this->uninstallTests();
+		$this->uninstallTests();*/
 
 		parent::update($repo, $initial, $target);
 
@@ -64,6 +70,8 @@ class PackageInstaller extends LibraryInstaller
 		$this->installAssets();
 		$this->installMigrations();
 		$this->installTests();
+
+		$this->logFiles($target);
 	}
 
 	/**
@@ -73,9 +81,10 @@ class PackageInstaller extends LibraryInstaller
 	{
 		$this->initDirs($package);
 
-		$this->uninstallTemplates();
+		$this->removeFiles($package);
+		/*$this->uninstallTemplates();
 		$this->uninstallAssets();
-		$this->uninstallTests();
+		$this->uninstallTests();*/
 
 		parent::uninstall($repo, $package);
 	}
@@ -180,7 +189,7 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function copyFiles($sourceDir, $mapping, $onceOnly = FALSE)
 	{
-		echo "\nCOPY: " . substr($sourceDir, 40) . ":\n";
+		//echo "\nCOPY: " . substr($sourceDir, 40) . ":\n";
 		$files = new DirectoryIterator($sourceDir);
 		/** @var DirectoryIterator $file */
 		foreach ($files as $file)
@@ -199,12 +208,16 @@ class PackageInstaller extends LibraryInstaller
 				$targetPath = $this->getMappedPath($file->getPathname(), $mapping);
 				if (!$targetPath || $onceOnly && file_exists($targetPath))
 				{
-					echo "- skip: " . substr($file->getPathname(), 40) . "\n";
+					//echo "- skip: " . substr($file->getPathname(), 40) . "\n";
 					continue;
 				}
 				$this->filesystem->ensureDirectoryExists(dirname($targetPath));
-				echo "- copy: " . substr($file->getPathname(), 40) . ' --> ' . substr($targetPath, 40) . "\n";
+				//echo "- copy: " . substr($file->getPathname(), 40) . ' --> ' . substr($targetPath, 40) . "\n";
 				copy($file->getPathname(), $targetPath);
+				if (!$onceOnly)
+				{
+					$this->files[] = substr($targetPath, strlen($this->rootDir) + 1);
+				}
 			}
 		}
 	}
@@ -218,7 +231,7 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function deleteFiles($sourceDir, $mapping)
 	{
-		echo "\nDELETE: " . substr($sourceDir, 40) . ":\n";
+		//echo "\nDELETE: " . substr($sourceDir, 40) . ":\n";
 		$files = new DirectoryIterator($sourceDir);
 		/** @var DirectoryIterator $file */
 		foreach ($files as $file)
@@ -242,10 +255,10 @@ class PackageInstaller extends LibraryInstaller
 				$targetPath = $this->getMappedPath($file->getPathname(), $mapping);
 				if (!$targetPath)
 				{
-					echo "- skip: " . substr($file->getPathname(), 40) . "\n";
+					//echo "- skip: " . substr($file->getPathname(), 40) . "\n";
 					continue;
 				}
-				echo "- delete: " . substr($targetPath, 40) . "\n";
+				//echo "- delete: " . substr($targetPath, 40) . "\n";
 				unlink($targetPath);
 			}
 		}
@@ -323,6 +336,34 @@ class PackageInstaller extends LibraryInstaller
 		{
 			return FALSE;
 		}
+	}
+
+	/**
+	 * Ukládá seznam rozkopírovaných souborů (pro odinstalaci)
+	 */
+	private function logFiles(PackageInterface $package)
+	{
+		$dir = $this->baseDir . '/../../composer/' . $package->getName();
+		$this->filesystem->ensureDirectoryExists($dir);
+
+		file_put_contents($dir . '/installed.json', json_encode($this->files));
+	}
+
+	/**
+	 * Odinstaluje soubory rozkopírované do aplikace (podle logu z instalace)
+	 */
+	private function removeFiles(PackageInterface $package)
+	{
+		$dir = $this->baseDir . '/../../composer/' . $package->getName();
+
+		$files = json_decode(file_get_contents($dir . '/installed.json'));
+		foreach ($files as $file)
+		{
+			unlink($this->rootDir . '/' . $file);
+		}
+
+		$this->filesystem->removeDirectory($dir);
+		@rmdir(dirname($dir));
 	}
 
 }
