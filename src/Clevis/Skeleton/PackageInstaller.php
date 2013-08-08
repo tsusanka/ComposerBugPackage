@@ -176,8 +176,7 @@ class PackageInstaller extends LibraryInstaller
 	private function initDirs(PackageInterface $package)
 	{
 		$this->baseDir = $this->getPackageBasePath($package);
-		// todo: may be a problem if vendor dir is configured to be a subdirectory (eg. `libs/composer`)
-		$this->rootDir = substr($this->vendorDir, 0, -6);
+		$this->rootDir = dirname($this->vendorDir);
 	}
 
 	/**
@@ -343,7 +342,7 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function logFiles(PackageInterface $package)
 	{
-		$dir = $this->baseDir . '/../../composer/' . $package->getName();
+		$dir = dirname(dirname($this->baseDir)) . '/composer/' . $package->getName();
 		$this->filesystem->ensureDirectoryExists($dir);
 
 		file_put_contents($dir . '/installed.json', json_encode($this->files));
@@ -354,7 +353,7 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function removeFiles(PackageInterface $package)
 	{
-		$dir = $this->baseDir . '/../../composer/' . $package->getName();
+		$dir = dirname(dirname($this->baseDir)) . '/composer/' . $package->getName();
 
 		$files = json_decode(file_get_contents($dir . '/installed.json'));
 		foreach ($files as $file)
