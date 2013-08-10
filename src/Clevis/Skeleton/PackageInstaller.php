@@ -40,6 +40,7 @@ class PackageInstaller extends LibraryInstaller
 	{
 		parent::install($repo, $package);
 
+		$this->files = array();
 		$this->initDirs($package);
 
 		$this->installTemplates();
@@ -64,6 +65,7 @@ class PackageInstaller extends LibraryInstaller
 
 		parent::update($repo, $initial, $target);
 
+		$this->files = array();
 		$this->initDirs($target);
 
 		$this->installTemplates();
@@ -356,6 +358,8 @@ class PackageInstaller extends LibraryInstaller
 		$dir = dirname(dirname($this->baseDir)) . '/composer/' . $package->getName();
 
 		$files = json_decode(file_get_contents($dir . '/installed.json'));
+		if (!$files) return;
+		
 		foreach ($files as $file)
 		{
 			unlink($this->rootDir . '/' . $file);
