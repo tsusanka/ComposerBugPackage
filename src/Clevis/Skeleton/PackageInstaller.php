@@ -59,9 +59,9 @@ class PackageInstaller extends LibraryInstaller
 		$this->initDirs($initial);
 
 		$this->removeFiles($initial);
-		/*$this->uninstallTemplates();
+		$this->uninstallTemplates();
 		$this->uninstallAssets();
-		$this->uninstallTests();*/
+		$this->uninstallTests();
 
 		parent::update($repo, $initial, $target);
 
@@ -84,9 +84,9 @@ class PackageInstaller extends LibraryInstaller
 		$this->initDirs($package);
 
 		$this->removeFiles($package);
-		/*$this->uninstallTemplates();
+		$this->uninstallTemplates();
 		$this->uninstallAssets();
-		$this->uninstallTests();*/
+		$this->uninstallTests();
 
 		parent::uninstall($repo, $package);
 	}
@@ -359,10 +359,17 @@ class PackageInstaller extends LibraryInstaller
 
 		$files = json_decode(file_get_contents($dir . '/installed.json'));
 		if (!$files) return;
-		
+
 		foreach ($files as $file)
 		{
-			unlink($this->rootDir . '/' . $file);
+			$path = $this->rootDir . '/' . $file;
+			if (!@unlink($path))
+			{
+				if (file_exists($path))
+				{
+					trigger_error('Cannot remove file ' . $path, E_USER_NOTICE);
+				}
+			}
 		}
 
 		$this->filesystem->removeDirectory($dir);
