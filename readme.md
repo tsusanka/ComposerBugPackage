@@ -32,7 +32,7 @@ assety:
 
 migrace:
 - původní cesta: `vendor/{Vendor}/{Package}/migrations/struct/2013-01-01-users.sql`
-- původní cesta: `migrations/struct/2013-01-01-users.sql`
+- nová cesta: `migrations/struct/2013-01-01-users.sql`
 
 testy:
 - původní cesta: `vendor/{Vendor}/{Package}/tests/cases/Unit/{Sub/Dir}/Test.php`
