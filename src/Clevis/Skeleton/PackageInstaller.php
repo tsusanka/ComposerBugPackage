@@ -144,9 +144,13 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	private function installMigrations()
 	{
-		if (is_readable($this->baseDir . '/migrations'))
+		if (is_readable($this->baseDir . '/migrations/struct'))
 		{
-			$this->copyFiles($this->baseDir . '/migrations', $this->rootDir . '/migrations/', TRUE);
+			$this->copyFiles($this->baseDir . '/migrations/struct', $this->rootDir . '/migrations/struct/', TRUE);
+		}
+ 		if (is_readable($this->baseDir . '/migrations/data'))
+		{
+			$this->copyFiles($this->baseDir . '/migrations/data', $this->rootDir . '/migrations/data/', TRUE);
 		}
 	}
 
