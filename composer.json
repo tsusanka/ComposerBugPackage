@@ -1,11 +1,9 @@
 {
-	"name": "tsusanka/composer-versions-bug",
-	"description": "Installer of packages for Skeleton21",
-	"homepage": "http://clevis.cz",
-	"license": "BSD-3-Clause",
+	"name": "tsusanka/composer-bug-package",
+	"description": "Package's composer.json",
 	"authors": [
 		{
-			"name": "Tomas Suanka"
+			"name": "Tomas Susanka"
 		}
 	],
 
