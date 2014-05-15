@@ -1,28 +1,16 @@
 {
-	"name": "clevis/skeleton-package-installer",
-	"type": "composer-installer",
+	"name": "tsusanka/composer-versions-bug",
 	"description": "Installer of packages for Skeleton21",
 	"homepage": "http://clevis.cz",
 	"license": "BSD-3-Clause",
 	"authors": [
 		{
-			"name": "Clevis s.r.o.",
-			"homepage": "http://clevis.cz"
+			"name": "Tomas Suanka"
 		}
 	],
 
 	"require": {
-		"php": ">= 5.3.7"
-	},
-	"require-dev": {
-		"nette/tester": "@dev",
-		"composer/composer": "@dev"
-	},
-
-	"autoload": {
-		"psr-0": { "Clevis\\Skeleton\\": "src/" }
-	},
-	"extra": {
-		"class": "Clevis\\Skeleton\\PackageInstaller"
+		"php": ">= 5.3.7",
+		"nette": "2.2.*"
 	}
 }
